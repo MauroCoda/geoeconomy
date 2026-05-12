@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GeoEconomy
 
-## Getting Started
+A [Next.js](https://nextjs.org) App Router app that pulls **live-ish economy headlines** from **Google News RSS** (free public XML), then runs an **OpenAI** macro desk: structured briefing (overview, themes, risks, opportunities, outlook, sentiment, risk level, illustrative pulse scores).
 
-First, run the development server:
+## Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 20+ recommended
+- [OpenAI](https://platform.openai.com/api-keys) API key (optional; missing key uses heuristic fallback analysis)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+No third-party news API key is required—headlines come from Google’s public RSS search endpoint.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Install dependencies:
 
-## Learn More
+   ```bash
+   npm install
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+2. Copy the example environment file and add your key:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   cp .env.local.example .env.local
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   - `OPENAI_API_KEY` — OpenAI SDK (server only).
 
-## Deploy on Vercel
+3. Start the development server:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   npm run dev
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. Open [http://localhost:3000](http://localhost:3000).
+
+## API
+
+`GET /api/news?country=Switzerland`
+
+- Accepts any market string (trimmed, 2–80 characters). Builds an English **Google News RSS** query:
+  `"<country> economy OR business OR \"central bank\" OR inflation OR market"` with `hl=en-US`, `gl=US`, `ceid=US:en`.
+- Parses RSS server-side with **`rss-parser`**, returns up to **10** articles (`title`, `link`, `source`, `publishedAt`, etc.).
+- **`feedSource`**: `google-news-rss` or `fallback` when RSS fails or returns nothing usable.
+- **`usedFallback`** + **`fallbackNotice`** when synthetic headlines substitute so the UI never hard-crashes.
+- **In-memory cache**: **30 minutes** per normalized market key; concurrent identical requests are **deduplicated**.
+- **`cachedAt` / `fromStaleCache`** when a response is served from cache (including stale cache after RSS errors).
+
+OpenAI uses **`gpt-4.1-mini`** with JSON mode. On failure, a **deterministic fallback** briefing is still returned.
+
+## Scripts
+
+| Command        | Description              |
+| -------------- | ------------------------ |
+| `npm run dev`  | Development server       |
+| `npm run build`| Production build         |
+| `npm run start`| Production server        |
+| `npm run lint` | ESLint                   |
+
+## Stack
+
+Next.js (App Router), TypeScript, Tailwind CSS v4, **rss-parser**, Google News RSS, OpenAI Node SDK.
